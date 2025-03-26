@@ -10,7 +10,7 @@ from rest_framework.authentication import SessionAuthentication
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
-
+# for generation of jwt token (login)
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -18,32 +18,31 @@ def get_tokens_for_user(user):
         'access': str(refresh.access_token),
     }
 
-
+# api for user list 
 class UserListAPIView(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAdminUser]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
-    
 
-
+# api to retrive task list
 class TaskListAPIView(generics.ListAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
 
+# api to retrive assigned task
 class UserAssignedTasksView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
-
     def get(self, request):
         user = request.user
         tasks = user.tasks.all()
         serializer = TaskSerializer(tasks, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
+# api to register new user 
 class RegisterUserView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -58,7 +57,7 @@ class RegisterUserView(generics.CreateAPIView):
             'tokens': tokens
         }, status=status.HTTP_201_CREATED)
 
-
+# api for creating and updating tasks
 class CreateUpdateTaskView(generics.RetrieveUpdateAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
@@ -77,30 +76,26 @@ class CreateUpdateTaskView(generics.RetrieveUpdateAPIView):
     def perform_update(self, serializer):
         serializer.save()
 
-
-# for user to update the status
-
+# api to update task status 
 class UpdateTaskStatusView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
 
     def patch(self, request, pk):
-        task = get_object_or_404(Task, pk=pk, assigned_users=request.user)
-        status_name = request.data.get('status')
-        
+        if request.user.is_superuser:
+            task = get_object_or_404(Task, pk=pk)
+        else:
+            task = get_object_or_404(Task, pk=pk, assigned_users=request.user)
+        status_name = request.data.get('status')        
         if not status_name:
             return Response({"error": "Status is required."}, status=status.HTTP_400_BAD_REQUEST)
-        
         try:
             status_obj = Status.objects.get(TaskStatus=status_name)
         except Status.DoesNotExist:
-            return Response({"error": "Invalid status provided."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        
+            return Response({"error": "Invalid status provided."}, status=status.HTTP_400_BAD_REQUEST) 
         task.status = status_obj
         task.updated_at = timezone.now()  
-        task.save()
-        
+        task.save() 
         return Response({
             "id": task.id,
             "title": task.title,
@@ -111,9 +106,7 @@ class UpdateTaskStatusView(APIView):
             "status": task.status.TaskStatus
         }, status=status.HTTP_200_OK)
 
-
-
-
+# api for task assignment
 class AssignTaskAPIView(APIView):
     permission_classes = [permissions.IsAdminUser]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
@@ -145,7 +138,7 @@ class AssignTaskAPIView(APIView):
             'task_id': task.id
         }, status=status.HTTP_201_CREATED)
 
-
+# api for assignment and reassignment of tasks 
 class UnassignOrReassignTaskAPIView(APIView):
     permission_classes = [permissions.IsAdminUser]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
@@ -194,7 +187,7 @@ class UnassignOrReassignTaskAPIView(APIView):
             'previous_user_id': user.id
         }, status=status.HTTP_200_OK)
 
-
+# api for deleting tasks 
 class DeleteTaskAPIView(APIView):
     permission_classes = [permissions.IsAdminUser]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
@@ -209,8 +202,9 @@ class DeleteTaskAPIView(APIView):
         except Task.DoesNotExist:
             return Response({'error': 'Task not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+# api for Requesting assignment of task from super user.
 class CreateRequestTaskAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]  # Any authenticated user
+    permission_classes = [permissions.IsAuthenticated] 
     authentication_classes = [JWTAuthentication, SessionAuthentication]
 
     def post(self, request):
@@ -223,24 +217,21 @@ class CreateRequestTaskAPIView(APIView):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+# api for getting tasks requests  
 class GetRequestTaskAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
 
     def get(self, request):
-        # If the user is a superuser, show all requests
         if request.user.is_superuser:
             request_tasks = RequestTask.objects.all()
         else:
-            # Else show only their own requests
             request_tasks = RequestTask.objects.filter(user=request.user)
         
         serializer = RequestTaskSerializer(request_tasks, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-
-
+# api for approving and rejecting task.
 class ApproveRejectRequestTaskAPIView(APIView):
     permission_classes = [permissions.IsAdminUser]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
@@ -281,7 +272,7 @@ class ApproveRejectRequestTaskAPIView(APIView):
             'task_ids': [task.id for task in tasks] if is_approved else []
         }, status=status.HTTP_200_OK)
 
-
+# api for deleting task requests
 class DeleteOwnRequestTaskAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [JWTAuthentication, SessionAuthentication]
