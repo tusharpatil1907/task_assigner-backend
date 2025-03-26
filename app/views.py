@@ -109,7 +109,8 @@ class UpdateTaskStatusView(APIView):
 # api for task assignment
 class AssignTaskAPIView(APIView):
     permission_classes = [permissions.IsAdminUser]
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    authentication_classes = [SessionAuthentication, JWTAuthentication]
+
 
     def post(self, request):
         user_id = request.data.get('user_id')
@@ -246,18 +247,20 @@ class ApproveRejectRequestTaskAPIView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Fetch the request task by request_ID
             request_task = RequestTask.objects.get(request_ID=request_id)
         except RequestTask.DoesNotExist:
             return Response({
                 'error': 'RequestTask not found.'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        user = request_task.user_ID
-        tasks = request_task.task_ID.all()
+        # Correct field names
+        user = request_task.user  
+        tasks = request_task.tasks.all()  
 
         if is_approved:
             for task in tasks:
-                user.tasks.add(task)
+                user.tasks.add(task)  # Assuming user has a ManyToManyField to Task
                 user.save()
 
             message = f"Request {request_id} approved. Task(s) assigned to {user.username}."
@@ -271,6 +274,7 @@ class ApproveRejectRequestTaskAPIView(APIView):
             'user_id': user.id,
             'task_ids': [task.id for task in tasks] if is_approved else []
         }, status=status.HTTP_200_OK)
+
 
 # api for deleting task requests
 class DeleteOwnRequestTaskAPIView(APIView):

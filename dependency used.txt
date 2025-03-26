@@ -1,0 +1,114 @@
+dependency used
+
+asgiref==3.8.1
+Django==5.1.7
+djangorestframework==3.15.2
+djangorestframework_simplejwt==5.5.0
+PyJWT==2.9.0
+sqlparse==0.5.3
+tzdata==2025.2
+
+
+Task assignment api Documentation 
+
+1. payload to generate access token (login)
+url: api/token/   method post
+{
+    "username": "admin",
+    "password": "admin"
+}
+
+2. payload to register user
+url : http://localhost:8000/api/register-user/  method post.
+payload:
+{
+    "username": "",
+    "email": "",
+    "password": "",
+    "assigned_tasks": []
+} 
+ mention task ids if required to assign at time of creation.
+
+
+3. payload to create a task
+
+url : http://127.0.0.1:8000/api/create-task/   method put.
+payload:
+{
+    "title": "Complete Project Report",
+    "description": "Prepare and submit the final project report for the client."
+}
+
+4 payload for updating task
+url :http://127.0.0.1:8000/api/update-task/2/    method put
+{
+    "title": "updated title ",
+    "description": "updated desc",
+    "status": "New" //optional field
+}
+
+
+5. payload to delete a task.
+url : http://127.0.0.1:8000/api/delete-task/2/  method delete.
+
+
+6 urls to retrive users, tasks, any personal tasks.
+
+http://127.0.0.1:8000/api/users/  get  super user only
+http://127.0.0.1:8000/api/tasks/  get  super user only
+http://127.0.0.1:8000/api/my-tasks/  get    any login user.
+
+
+7. urls to assign task.
+http://127.0.0.1:8000/api/assign-task/     method post
+payload
+{
+    "user_id": 1,
+    "task_id":3
+}
+
+8. reassign task or un assign task.
+url: http://127.0.0.1:8000/api/unassign-or-reassigntask/    method post
+{
+    "user_id": 1,
+    "task_id": 3,
+    "reassign_to": 2  //optional field not to send in case we only have to revoke the task.
+}
+
+9. update task status
+url : http://127.0.0.1:8000/api/update-status/4/   method patch.
+{
+   "status":"Closed"
+}
+
+
+10.request assignment of task.
+method post
+url:  http://127.0.0.1:8000/api/request-task/
+
+payload
+{
+   "user":3,
+   "tasks":[2,3]
+}
+
+
+11. for approval and rejection of request.
+method post
+url :http://127.0.0.1:8000/api/task-approval/
+
+{
+    "request_id":2,
+    "is_approved":true
+}
+
+12 delete request:
+method delete 
+url : http://127.0.0.1:8000/api/delete-request-task/123/
+
+
+13 get reapproval requests.  get method
+url :  http://127.0.0.1:8000/api/task-assignment-requests/
+
+super user can see all requests while user can see only created requests.
+

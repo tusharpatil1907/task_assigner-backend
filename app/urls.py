@@ -20,7 +20,7 @@ urlpatterns = [
     # requesting a task - any logged in user.
     path('request-task/', CreateRequestTaskAPIView.as_view(), name='create-request-task'),
     # Deleting task -only user can only delete their own created tasks.
-    path('delete-request/', DeleteOwnRequestTaskAPIView.as_view(), name='task-request'),
+    path('delete-request/<int:request_id>', DeleteOwnRequestTaskAPIView.as_view(), name='task-request'),
     # All assignment requests can be accessed by superuser whereas, user can only have access to created ones.
     path('task-assignment-requests/', GetRequestTaskAPIView.as_view(), name='task-assignment-requests'),
     # task approval and rejection can be done by superuser only
